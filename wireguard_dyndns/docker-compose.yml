@@ -1,0 +1,52 @@
+---
+version: "3.7"
+
+services:
+  rodns:
+    image: lscr.io/linuxserver/ddclient:latest
+    container_name: ddclient
+    deploy:
+      replicas: 1
+    environment:
+    - PUID=1000
+    - PGID=1000
+    - TZ=Etc/UTC
+    configs:
+    - source: dns_ro
+      target: /defaults/ddclient.conf
+      uid: '1000'
+      gid: '1000'
+      mode: 0777
+    restart: unless-stopped
+
+  rovpn:
+    image: lscr.io/linuxserver/wireguard:latest
+    container_name: wireguard
+    deploy:
+      replicas: 1
+    cap_add:
+      - NET_ADMIN
+      - SYS_MODULE
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Etc/UTC
+      - SERVERURL=subdomain.example.com
+      - SERVERPORT=51821
+      - PEERS=10
+      - PEERDNS=auto
+      - INTERNAL_SUBNET=10.100.100.0
+      - ALLOWEDIPS=0.0.0.0/0
+      - LOG_CONFS=true
+    volumes:
+      - /wireguard:/config
+      - /lib/modules:/lib/modules
+    ports:
+      - 51821:51820/udp
+    sysctls:
+      - net.ipv4.conf.all.src_valid_mark=1
+    restart: unless-stopped
+    
+configs:
+  dns_ro:
+    file: ./configs/ddclient_ro.conf
